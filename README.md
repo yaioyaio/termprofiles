@@ -11,6 +11,8 @@
 <!-- [![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) -->
 
 > Per-project terminal profiles that feel native on macOS (iTerm2) and Windows (Windows Terminal), without hand-editing JSON.
+>
+> Keywords: iTerm2 dynamic profiles, Windows Terminal fragments, per-project ZDOTDIR, developer automation CLI.
 
 TermProfiles creates one JSON file per project so you can add or remove profiles safely. On macOS, each project gets its own `ZDOTDIR` (history + `.zshrc`), while Windows users receive tidy Windows Terminal fragments. Everything lives inside your home directory.
 
