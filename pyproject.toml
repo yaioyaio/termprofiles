@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "termprofiles"
+version = "0.1.0"
+description = "Per-project terminal profiles for iTerm2 (macOS) and Windows Terminal (Windows), safely via per-file JSON."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [{name = "yaioyaio", email = "yaioyaio@gmail.com"}]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Environment :: Console",
+]
+
+[project.urls]
+Homepage = "https://github.com/yaioyaio/termprofiles"
+
+[project.scripts]
+termprofiles = "termprofiles.cli:main"
