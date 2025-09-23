@@ -153,6 +153,10 @@ Windows 옵션:
 
 생성된 JSON 파일을 읽어 프로필과 작업 디렉터리를 표시합니다.
 
+### `termprofiles doctor`
+
+배포 전에 필요한 항목을 점검합니다. 현재 Git 브랜치가 업스트림을 추적하는지, `origin` 원격이 SSH인지 확인하고 PyPI 업로드 준비(`twine`, 환경 변수, `~/.pypirc`, `dist/` 빌드 산출물)를 검사합니다.
+
 ### `termprofiles parents` _(macOS 전용)_
 
 `~/Library/Preferences/com.googlecode.iterm2.plist`에서 감지한 iTerm2 프로필과 GUID를 나열합니다.
@@ -241,6 +245,11 @@ export TP_COLOR_SCHEME="One Half Dark"
 
 ## 문제 해결 & FAQ
 
+- **`git push` 실행 시 “no upstream branch” 오류가 나요.** `git push --set-upstream origin <branch>`(예: `git push --set-upstream origin develop`)을 한 번 실행해 원격 브랜치와 연결하세요.
+- **깃이 매번 계정 정보를 요구해요.** SSH 키를 GitHub에 등록한 뒤 `git remote set-url origin git@github.com:yaioyaio/termprofiles.git`로 전환하거나, Personal Access Token을 `git config --global credential.helper`로 저장하세요.
+- **PyPI 업로드에서 인증이 거절돼요.** 업로드 전에 `~/.pypirc`를 준비하거나 `TWINE_USERNAME=__token__`, `TWINE_PASSWORD=pypi-...` 환경변수를 설정한 상태에서 `python -m twine upload dist/*`를 실행하세요.
+- **빌드는 성공하지만 라이선스 경고가 나와요.** `pyproject.toml`의 `project.license` 값을 SPDX 문자열(예: `"MIT"`)로 바꾸면 setuptools의 폐기 예정 경고를 없앨 수 있습니다.
+- **자동으로 점검하고 싶어요.** `termprofiles doctor`를 실행하면 Git/PyPI 배포 준비 사항을 한 번에 확인할 수 있습니다.
 - **프로필이 보이지 않아요.** iTerm2/Windows Terminal을 재시작하여 동적 프로필/프래그먼트를 다시 로드하세요.
 - **iTerm2가 JSON을 읽지 못해요.** Dynamic Profiles가 활성화되어 있는지 확인합니다(`Preferences → Profiles → Other Actions → Import JSON Profiles`).
 - **Windows Terminal에서 프로필이 적용되지 않아요.** 설정에서 프래그먼트가 활성화되어 있는지 확인하고, `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\TermProfiles`에 JSON이 생성되었는지 점검하세요.

@@ -153,6 +153,10 @@ Delete generated profiles. Each `target` can be the original directory or its sl
 
 Show profiles discovered via the generated JSON files. Helpful for auditing or scripting.
 
+### `termprofiles doctor`
+
+Diagnose release prerequisites. The command checks that the current Git branch tracks an upstream, confirms whether the `origin` remote uses SSH, and verifies PyPI upload requirements such as `twine`, environment variables, `.pypirc`, and recent build artifacts.
+
 ### `termprofiles parents` _(macOS only)_
 
 Enumerate iTerm2 profiles detected in `~/Library/Preferences/com.googlecode.iterm2.plist` with their GUIDs.
@@ -241,6 +245,11 @@ export TP_COLOR_SCHEME="One Half Dark"
 
 ## Troubleshooting & FAQ
 
+- **`git push` fails with “no upstream branch”.** Run `git push --set-upstream origin <branch>` once (for example `git push --set-upstream origin develop`) so Git knows which remote branch to track.
+- **Git keeps asking for credentials.** Switch the remote to SSH (`git remote set-url origin git@github.com:yaioyaio/termprofiles.git`) after registering your SSH key with GitHub, or store a Personal Access Token using `git config --global credential.helper`.
+- **PyPI upload rejects credentials.** Ensure a valid token is available via `~/.pypirc` or environment variables (`TWINE_USERNAME=__token__`, `TWINE_PASSWORD=pypi-...`) before running `python -m twine upload dist/*`.
+- **Build succeeds but shows license warnings.** Update `project.license` in `pyproject.toml` to an SPDX string (for example `"MIT"`) to silence the new setuptools deprecation warning.
+- **Want an automated check?** Run `termprofiles doctor` to validate Git/PyPI prerequisites in one command.
 - **Profiles are missing.** Restart iTerm2/Windows Terminal so it reloads dynamic profiles/fragments.
 - **iTerm2 cannot read the JSON.** Ensure Dynamic Profiles are enabled (`Preferences → Profiles → Other Actions → Import JSON Profiles`).
 - **Windows Terminal ignores the profile.** Confirm fragments are enabled (`Settings → Open JSON file` should list `TermProfiles`). Check `%LOCALAPPDATA%\Microsoft\Windows Terminal\Fragments\TermProfiles` for the created JSON.

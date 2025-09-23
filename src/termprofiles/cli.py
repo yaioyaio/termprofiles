@@ -61,6 +61,8 @@ def main():
     if is_mac():
         p = sub.add_parser("parents", help="list iTerm2 profiles (name + GUID) detected by this tool")
 
+    sub.add_parser("doctor", help="diagnose git/PyPI release prerequisites")
+
     args = ap.parse_args()
 
     if args.cmd == "add":
@@ -131,3 +133,7 @@ def main():
 
     if is_mac() and args.cmd == "new":
         print(backend.open_new_session(dirpath=args.dir, slug_hint=args.slug, tab=args.tab)); return
+
+    if args.cmd == "doctor":
+        from .doctor import run_doctor
+        print(run_doctor()); return
