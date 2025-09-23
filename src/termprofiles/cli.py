@@ -22,6 +22,24 @@ def main():
                        help="iTerm2 parent profile GUID to inherit UI from")
         a.add_argument("--parent-name", default=os.environ.get("TP_PARENT_NAME",""),
                        help="iTerm2 parent profile NAME (case-insensitive)")
+        a.add_argument("--isolate-cli", default=os.environ.get("TP_ISOLATE_CLI",""),
+                       help="Comma-separated CLI names to wrap with isolated HOME/XDG dirs")
+        so = sub.add_parser("setopt", help="adjust zsh setopt flags for this project profile")
+        so.add_argument("--dir", default=None, help="Target directory (defaults to cwd)")
+        so.add_argument("--slug", default=None, help="Override slug name")
+        so.add_argument("--enable", default="", help="Comma-separated setopts to enable (non-interactive)")
+        so.add_argument("--disable", default="", help="Comma-separated setopts to disable (non-interactive)")
+        so.add_argument("--interactive", action="store_true", help="Force interactive picker even when enable/disable provided")
+
+        pr = sub.add_parser("prompt", help="enable/disable the built-in prompt override")
+        pr.add_argument("state", choices=["on", "off", "toggle"], help="Desired state")
+        pr.add_argument("--dir", default=None, help="Target directory (defaults to cwd)")
+        pr.add_argument("--slug", default=None, help="Override slug name")
+
+        nw = sub.add_parser("new", help="open a new iTerm window/tab with this project profile")
+        nw.add_argument("--dir", default=None, help="Target directory (defaults to cwd)")
+        nw.add_argument("--slug", default=None, help="Override slug name")
+        nw.add_argument("--tab", action="store_true", help="Open as a new tab in the current window")
     else:
         a.add_argument("--color-scheme", default=os.environ.get("TP_COLOR_SCHEME",""),
                        help="Windows Terminal colorScheme name to apply")
@@ -56,8 +74,9 @@ def main():
                     print(f"Resolved parent '{args.parent_name}' -> {parent_guid}")
                 else:
                     print(f"WARNING: parent '{args.parent_name}' not found; continuing without parent.")
+            isolated = [s.strip() for s in (args.isolate_cli.split(",") if args.isolate_cli else []) if s.strip()]
             for d in args.dirs:
-                results.append(backend.add(d, parent_guid=parent_guid))
+                results.append(backend.add(d, parent_guid=parent_guid, isolated_clis=isolated))
         else:
             for d in args.dirs:
                 results.append(backend.add(
@@ -95,3 +114,20 @@ def main():
         for n,g in rows:
             print(f"{n:<{w}}  {g}")
         return
+
+    if is_mac() and args.cmd == "setopt":
+        enable = [s.strip() for s in args.enable.split(",") if s.strip()]
+        disable = [s.strip() for s in args.disable.split(",") if s.strip()]
+        print(backend.configure_setopts(
+            dirpath=args.dir,
+            slug_hint=args.slug,
+            enable=enable,
+            disable=disable,
+            force_interactive=args.interactive,
+        )); return
+
+    if is_mac() and args.cmd == "prompt":
+        print(backend.configure_prompt(args.state, dirpath=args.dir, slug_hint=args.slug)); return
+
+    if is_mac() and args.cmd == "new":
+        print(backend.open_new_session(dirpath=args.dir, slug_hint=args.slug, tab=args.tab)); return

@@ -10,6 +10,8 @@
 <!-- [![CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) -->
 
 > macOS(iTerm2)와 Windows(Windows Terminal)에서 JSON을 손으로 수정할 필요 없이 프로젝트별 터미널 프로필을 만들어 줍니다.
+>
+> 키워드: iTerm2 동적 프로필, Windows Terminal 프래그먼트, 프로젝트별 ZDOTDIR, 개발 자동화 CLI
 
 TermProfiles는 프로젝트마다 별도의 JSON 파일을 생성하여 안전하게 추가/삭제할 수 있게 해 줍니다. macOS에서는 각 프로젝트마다 전용 `ZDOTDIR`(히스토리 + `.zshrc`)가 만들어지고, Windows 사용자는 깔끔한 Windows Terminal 프래그먼트를 얻게 됩니다. 모든 파일은 홈 디렉터리 안에만 생성됩니다.
 
@@ -52,6 +54,8 @@ TermProfiles는 프로젝트마다 별도의 JSON 파일을 생성하여 안전�
 - 기본 PowerShell 설치 필요. 선택 사항: Git Bash, CMD, WSL.
 
 ## 설치
+
+TermProfiles는 [PyPI](https://pypi.org/project/termprofiles/)에 게시되어 있으며 아래 방법 중 하나로 설치할 수 있습니다.
 
 ### pipx 사용(추천)
 
@@ -153,6 +157,18 @@ Windows 옵션:
 
 `~/Library/Preferences/com.googlecode.iterm2.plist`에서 감지한 iTerm2 프로필과 GUID를 나열합니다.
 
+### `termprofiles setopt` _(macOS 전용)_
+
+현재 프로젝트의 `.zshrc`에 적용할 추천 `setopt` 옵션(`NO_SHARE_HISTORY`, `SHARE_HISTORY`, `EXTENDED_HISTORY`, `INC_APPEND_HISTORY` 등)을 인터랙티브하게 켜고 끄거나, `--enable SHARE_HISTORY --disable NO_SHARE_HISTORY`와 같이 비대화식으로 적용할 수 있습니다. 변경 사항은 원자적으로 저장되며, 동일한 프로필을 사용하는 모든 iTerm 탭에서 즉시 `source` 됩니다.
+
+### `termprofiles prompt on|off|toggle` _(macOS 전용)_
+
+기본 제공 프롬프트(`[%F{cyan}<slug>%f] user@host path %#`)를 켜거나 끄거나 토글합니다. 켜면 부모 프로필에서 내려온 프롬프트 대신 프로젝트 전용 프롬프트가 적용되고, 실행 중인 탭에도 즉시 반영됩니다.
+
+### `termprofiles new` _(macOS 전용)_
+
+현재 프로젝트 프로필을 사용하는 iTerm 새 창을 엽니다 (`--tab`을 주면 같은 창에 새 탭으로 열 수 있습니다).
+
 ## 프로필 구조
 
 - **슬러그 생성:** 디렉터리 이름을 소문자로 변환하고, 공백은 `-`, 영문/숫자/`_.-` 이외 문자는 제거합니다. (예: `/Users/Alex/My App` → `my-app`)
@@ -164,10 +180,20 @@ Windows 옵션:
 ## macOS 상세 정보
 
 - 각 프로젝트마다 `~/.zsh-profiles/<slug>/` 디렉터리가 생성되고, 그 안에 `.zshrc`와 `.zsh_history`가 포함됩니다.
+- 슬러그 하나가 곧 세션의 범위이며, `ZDOTDIR=~/.zsh-profiles/<slug>`로 강제됩니다. 같은 슬러그를 쓰는 모든 터미널은 히스토리와 설정을 공유하지만 다른 슬러그와는 완전히 분리됩니다.
 - `.zshrc`는 `~/.zshrc.common`이 존재할 경우 자동으로 소스하여 공통 설정을 공유할 수 있습니다.
-- 히스토리 크기는 `HISTSIZE` 및 `SAVEHIST` 50,000으로 넉넉하게 설정됩니다.
+- 히스토리 크기는 `HISTSIZE` 및 `SAVEHIST` 50,000으로 넉넉하게 설정됩니다. 기본적으로 `setopt NO_SHARE_HISTORY`가 적용되어 실시간 히스토리 동기화를 끄고, 다른 프로젝트에서 명령이 섞이지 않게 합니다. 실시간 공유가 필요하면 생성된 `.zshrc`에서 `NO_SHARE_HISTORY`를 제거하고 `setopt SHARE_HISTORY`로 바꾸면 됩니다.
 - 실행 명령어: `/usr/bin/env ZDOTDIR="<project_zdotdir>" /bin/zsh -l`
+- `--isolate-cli codex,my-cli`처럼 지정하면 `~/.zsh-profiles/<slug>/bin/`에 래퍼가 생성되고, 해당 CLI는 프로젝트 전용 HOME/XDG 디렉터리를 사용합니다.
 - 부모 프로필을 설정하면 색상, 폰트 등 UI 구성을 그대로 상속 받을 수 있습니다.
+- `termprofiles setopt` (또는 `termprofiles setopt --enable SHARE_HISTORY --disable NO_SHARE_HISTORY`)로 `NO_SHARE_HISTORY` ↔ `SHARE_HISTORY`, `HIST_IGNORE_SPACE` 같은 옵션을 간단히 토글하면 결과가 즉시 모든 탭에 적용됩니다.
+- `termprofiles prompt on|off|toggle`로 프로젝트 전용 프롬프트를 손쉽게 켜고 끌 수 있습니다.
+
+### codex 세션 공유 안내
+
+- `termprofiles add <dir> --isolate-cli codex`로 래퍼를 만들면 프로젝트 슬러그별로 `~/.zsh-profiles/<slug>/cli-homes/codex` 디렉터리가 생성되고, 같은 프로파일을 사용하는 모든 터미널에서 동일한 codex 홈/히스토리를 바라봅니다.
+- codex CLI는 프로세스가 종료될 때 히스토리 파일을 덮어쓰는 방식이라, 두 터미널에서 동시에 실행 중인 명령은 즉시 동기화되지 않습니다. 한쪽에서 `codex`를 종료하거나 저장을 트리거하는 명령(`codex history` 등)을 실행하면 다른 터미널에서도 최신 히스토리를 확인할 수 있습니다.
+- codex 업데이트는 PATH에 있는 실제 실행 파일을 교체하는 것만으로 적용됩니다. `pipx upgrade codex`처럼 바이너리가 제자리에 교체되면 모든 프로파일이 자동으로 새 버전을 사용합니다. 래퍼가 가리키는 경로가 바뀌었을 때만 `termprofiles add <dir> --isolate-cli codex`를 다시 실행해 덮어쓰면 됩니다.
 
 ## Windows 상세 정보
 
@@ -188,18 +214,28 @@ Windows 옵션:
 | Windows 셸        | `--shell`        | `TP_SHELL`        | `powershell` |
 | WSL 배포판        | `--wsl-distro`   | `TP_WSL_DISTRO`   | `Ubuntu`     |
 | WSL ZDOTDIR       | `--wsl-zdotdir`  | `TP_WSL_ZDOTDIR`  | 없음         |
+| CLI 세션 분리     | `--isolate-cli`  | `TP_ISOLATE_CLI`  | 없음         |
 
-커맨드라인 인자가 환경 변수보다 우선합니다. 원하는 기본값을 설정하려면 셸 프로파일에 다음과 같이 추가하세요.
+커맨드라인 인자가 환경 변수보다 우선합니다. 원하는 기본값을 설정하려면 셸 프로파일에 다음과 같이 추가하세요. 반드시 자신의 환경에 실제로 존재하는 이름을 선택해야 합니다.
 
 ```bash
-export TP_PARENT_NAME="Solarized Dark"
+# macOS 예시 — `termprofiles parents` 목록 중 하나 사용
+export TP_PARENT_NAME="DEFAULT"
+# Windows 예시 — Windows Terminal `schemes` 이름 사용
 export TP_COLOR_SCHEME="One Half Dark"
 ```
+
+- macOS에서 사용할 부모 프로필 이름은 `termprofiles parents` 명령으로 확인할 수 있습니다. iTerm2 환경설정에서 감지된 이름과 GUID가 함께 출력됩니다.
+- Windows에서는 `wt settings`로 설정 편집기를 열거나 `settings.json` 파일의 `schemes` 배열을 확인해 `TP_COLOR_SCHEME`에 사용할 색상 테마 이름을 복사하세요.
 
 ## 활용 예시
 
 - **프로필 일괄 생성:** `find ~/Code -maxdepth 1 -type d -not -path '*/.*' -print0 | xargs -0 termprofiles add`
 - **일관된 테마 유지:** macOS에선 `TP_PARENT_NAME`, Windows에선 `TP_COLOR_SCHEME`을 설정해 색상과 UI를 맞춰보세요.
+- **CLI 세션 분리:** `termprofiles add ~/dev/sample-app --isolate-cli codex`로 Codex CLI의 `~/.codex` 데이터를 프로젝트 전용 경로(`~/.zsh-profiles/sample-app/cli-homes/codex`)에 격리합니다.
+- **codex 공유 사용법:** `termprofiles add . --isolate-cli codex` → iTerm2에서 동일한 `proj-<slug>` 프로파일 창을 두 개 연다 → 각 창에서 `codex`를 실행해 명령을 남긴 뒤, 다른 창에서 `codex history --latest`로 히스토리가 공유되는지 확인합니다.
+- **zsh 옵션 빠르게 조정:** `termprofiles setopt`로 원하는 `setopt` 조합을 고르고, `termprofiles prompt on/off`로 프롬프트를 전환하면 바뀐 설정이 즉시 모든 탭에 적용됩니다.
+- **새 셸 열기:** `termprofiles new --tab`으로 같은 프로필의 새 탭을 바로 띄울 수 있어 변경 사항 확인이 편합니다.
 - **WSL 개발 환경:** `termprofiles add "/mnt/c/dev/app" --shell wsl --wsl-distro Ubuntu-22.04 --wsl-zdotdir "/home/user/.config/zsh/app"` 명령으로 프로젝트 전용 설정이 적용된 WSL zsh를 즉시 실행합니다.
 - **깔끔한 제거:** `termprofiles remove ~/dev/sample-app --keep-zdotdir`는 동적 프로필만 제거하고 히스토리를 보존합니다.
 

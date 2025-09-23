@@ -157,6 +157,18 @@ Show profiles discovered via the generated JSON files. Helpful for auditing or s
 
 Enumerate iTerm2 profiles detected in `~/Library/Preferences/com.googlecode.iterm2.plist` with their GUIDs.
 
+### `termprofiles setopt` _(macOS only)_
+
+Interactively toggle recommended `setopt` flags (e.g., `NO_SHARE_HISTORY`, `SHARE_HISTORY`, `EXTENDED_HISTORY`, `INC_APPEND_HISTORY`) for the current project's `.zshrc`, or run non-interactively via `--enable SHARE_HISTORY --disable NO_SHARE_HISTORY`. Changes are written atomically and active iTerm sessions using the same profile automatically `source` the updated file.
+
+### `termprofiles prompt on|off|toggle` _(macOS only)_
+
+Enable, disable, or toggle the built-in prompt (`[%F{cyan}<slug>%f] user@host path %#`). When enabled, it overrides whatever prompt your inherited parent profile provides. The command rewrites the project `.zshrc` and reloads the profile in running tabs.
+
+### `termprofiles new` _(macOS only)_
+
+Open a new iTerm window (or add `--tab` to open a tab) that uses the current project's profile, useful after tweaking settings.
+
 ## How Profiles Are Structured
 
 - **Slug generation:** The directory name is lowercased, spaces become `-`, and non-alphanumeric characters are stripped (e.g., `/Users/Alex/My App` → `my-app`).
@@ -168,10 +180,20 @@ Enumerate iTerm2 profiles detected in `~/Library/Preferences/com.googlecode.iter
 ## macOS Details
 
 - Each project gets `~/.zsh-profiles/<slug>/` containing `.zshrc` and `.zsh_history`.
+- A slug maps 1:1 to a session scope: `ZDOTDIR=~/.zsh-profiles/<slug>` is forced so every terminal using the same slug shares history and config, while other slugs stay fully isolated.
 - `.zshrc` sources `~/.zshrc.common` if present, so you can share aliases across projects.
-- History is unlimited up to 50k entries (`HISTSIZE` + `SAVEHIST`).
+- History is unlimited up to 50k entries (`HISTSIZE` + `SAVEHIST`). By default `setopt NO_SHARE_HISTORY` keeps per-window commands from syncing in real time, preventing cross-project bleed. If you prefer live history sync, edit the generated `.zshrc` and switch to `setopt SHARE_HISTORY`.
 - Launch command: `/usr/bin/env ZDOTDIR="<project_zdotdir>" /bin/zsh -l`.
+- `--isolate-cli codex,my-cli` drops wrappers in `~/.zsh-profiles/<slug>/bin/` so those CLIs run with project-scoped HOME/XDG directories.
 - If you set a parent profile, the generated dynamic profile inherits colors, fonts, and other UI settings from it.
+- Use `termprofiles setopt` (or `termprofiles setopt --enable SHARE_HISTORY --disable NO_SHARE_HISTORY`) to switch between history behaviors and toggle helpers like `HIST_IGNORE_SPACE`; results propagate to every open tab instantly.
+- `termprofiles prompt on|off|toggle` flips the prebuilt prompt snippet on demand; enabling it gives each profile a cyan `[<slug>]` prefix, while disabling it defers to the parent profile's prompt.
+
+### codex session sharing
+
+- Running `termprofiles add <dir> --isolate-cli codex` creates wrappers so that every terminal on the same slug uses `~/.zsh-profiles/<slug>/cli-homes/codex` for Codex CLI data.
+- Codex writes history when the process exits (or an explicit save happens), so simultaneous Codex sessions do not see each other's commands instantly. Exit one instance or trigger `codex history` to refresh the shared file.
+- Updating Codex simply replaces the binary on `PATH`; because the wrapper calls the real executable (`shutil.which("codex")`), all profiles pick up the new version automatically. Re-run `termprofiles add <dir> --isolate-cli codex` only if the executable lives at a new path.
 
 ## Windows Details
 
@@ -192,18 +214,28 @@ Every CLI flag has an environment variable equivalent (useful for shell rc files
 | Windows shell        | `--shell`        | `TP_SHELL`           | `powershell` |
 | WSL distro           | `--wsl-distro`   | `TP_WSL_DISTRO`      | `Ubuntu`     |
 | WSL ZDOTDIR export   | `--wsl-zdotdir`  | `TP_WSL_ZDOTDIR`     | None         |
+| CLI session isolation| `--isolate-cli`  | `TP_ISOLATE_CLI`     | None         |
 
-Command-line arguments take precedence over environment variables. Set them in your shell profile to create customized defaults, e.g.:
+Command-line arguments take precedence over environment variables. Set them in your shell profile to create customized defaults; always pick names that exist in your setup:
 
 ```bash
-export TP_PARENT_NAME="Solarized Dark"
+# macOS example — choose from `termprofiles parents`
+export TP_PARENT_NAME="DEFAULT"
+# Windows example — choose from Windows Terminal `schemes`
 export TP_COLOR_SCHEME="One Half Dark"
 ```
+
+- Discover parent profile names on macOS with `termprofiles parents`; it prints the names and GUIDs detected in iTerm2's preferences.
+- On Windows, open Windows Terminal settings (`wt settings`) or inspect `settings.json` to view the `schemes` array and copy the color scheme name you want to export via `TP_COLOR_SCHEME`.
 
 ## Example Workflows
 
 - **Automate profile creation:** `find ~/Code -maxdepth 1 -type d -not -path '*/.*' -print0 | xargs -0 termprofiles add`.
 - **Shared look & feel:** on macOS set `TP_PARENT_NAME` to your favorite theme; on Windows set `TP_COLOR_SCHEME` to keep colors consistent.
+- **Isolate CLI state:** `termprofiles add ~/dev/sample-app --isolate-cli codex` keeps Codex CLI data under `~/.zsh-profiles/sample-app/cli-homes/codex` instead of the global `~/.codex`.
+- **Verify Codex sharing:** `termprofiles add . --isolate-cli codex` → open two iTerm2 windows using the same `proj-<slug>` profile → run a Codex command in one → confirm it appears via `codex history --latest` in the other after the first session exits or saves.
+- **Tune zsh quickly:** `termprofiles setopt` to toggle history options, then `termprofiles prompt on` (or `off`) to adjust the shared prompt; the tool re-sources every open session automatically.
+- **Spin up new shells:** `termprofiles new --tab` opens another tab with the same profile right away, ideal after changing configuration.
 - **WSL development:** `termprofiles add "/mnt/c/dev/app" --shell wsl --wsl-distro Ubuntu-22.04 --wsl-zdotdir "/home/user/.config/zsh/app"` launches straight into WSL zsh with project-specific config.
 - **Clean removal:** `termprofiles remove ~/dev/sample-app --keep-zdotdir` keeps historical context while removing the dynamic profile.
 
